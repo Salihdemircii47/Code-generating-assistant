@@ -1,0 +1,33 @@
+import requests
+import re
+import json
+
+def ollama_prompt(prompt_text):
+    url = 'http://localhost:11434/api/chat'
+
+    data = {
+        "model": "codellama:7b-instruct",
+        "messages": [
+            {"role": "system", "content": "Write a short title and then a valid Python code. Respond in this format:\nTitle\n```python\n# code here\n```"},
+            {"role": "user", "content": prompt_text}
+        ]
+    }
+
+    try:
+        response = requests.post(url, json=data)
+
+        if response.status_code == 200:
+            result = json.loads(response.text)
+            content = result["message"]["content"]
+
+            match = re.search(r"(?P<title>.*?)\n```python\n(?P<code>.*?)\n```", content, re.DOTALL)
+            if match:
+                title = match.group("title").strip()
+                code = match.group("code").strip()
+                return title, code
+            else:
+                return "Başlık/Kod ayrıştırılamadı", content
+        else:
+            return "Hata", f"Durum Kodu: {response.status_code}, Cevap: {response.text}"
+    except Exception as e:
+        return "Hata", str(e)
